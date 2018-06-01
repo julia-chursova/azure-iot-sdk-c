@@ -19,7 +19,7 @@
 #include <stdint.h>
 
 #include "azure_c_shared_utility/umock_c_prod.h"
-#include "internal/iothubtransport.h"
+#include "iothub_transport_ll.h"
 #include "iothub_client_core_ll.h"
 #include "iothub_client_core.h"
 #include "iothub_device_client_ll.h"
@@ -318,7 +318,7 @@ extern "C"
     *
     * @return	IOTHUB_CLIENT_OK upon success or an error code upon failure.
     */
-    MOCKABLE_FUNCTION(, IOTHUB_CLIENT_RESULT, IoTHubDeviceClient_SetDeviceMethodCallback, IOTHUB_DEVICE_CLIENT_HANDLE, iotHubClientHandle, IOTHUB_CLIENT_INBOUND_DEVICE_METHOD_CALLBACK, inboundDeviceMethodCallback, void*, userContextCallback);
+    MOCKABLE_FUNCTION(, IOTHUB_CLIENT_RESULT, IoTHubDeviceClient_SetDeviceMethodCallback, IOTHUB_DEVICE_CLIENT_HANDLE, iotHubClientHandle, IOTHUB_CLIENT_DEVICE_METHOD_CALLBACK_ASYNC, deviceMethodCallback, void*, userContextCallback);
 
     /**
     * @brief	This API responses to a asnyc method callback identified the methodId.

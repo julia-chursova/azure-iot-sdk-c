@@ -15,6 +15,7 @@ $errorActionPreference    = "stop"
 $_rootCertCommonName      = "Azure IoT CA TestOnly Root CA"
 $_rootCertSubject         = "CN=$_rootCertCommonName"
 $_intermediateCertCommonName = "Azure IoT CA TestOnly Intermediate {0} CA"
+$_intermediateCertSubject    = "CN=$_intermediateCertCommonName"
 $_privateKeyPassword      = "1234"
 
 $rootCACerFileName          = "./RootCA.cer"
@@ -27,7 +28,7 @@ $intermediate3CAPemFileName = "./Intermediate3.pem"
 $edgePublicCertDir          = "certs"
 $edgePrivateCertDir         = "private"
 $edgeDeviceCertificate      = Join-Path $edgePublicCertDir "new-edge-device.cert.pem"
-$edgeDevicePrivateKey       = Join-Path $edgePrivateCertDir "new-edge-device.cert.pem"
+$edgeDevicePrivateKey       = Join-Path $edgePrivateCertDir "new-edge-device.key.pem"
 $edgeDeviceFullCertChain    = Join-Path $edgePublicCertDir "new-edge-device-full-chain.cert.pem"
 $edgeIotHubOwnerCA          = Join-Path $edgePublicCertDir "azure-iot-test-only.root.ca.cert.pem"
 
@@ -208,8 +209,7 @@ function New-CACertsDevice([string]$deviceName, [string]$signingCertSubject=$_ro
 
     # Begin the massaging.  First, turn the PFX into a PEM file which contains public key, private key, and bunches of attributes.
     # We're closer to what IOTHub SDK's can handle but not there yet.
-    Write-Host ("When prompted for password by openssl, enter the password as {0}" -f $_privateKeyPassword)
-    openssl pkcs12 -in $newDevicePfxFileName -out $newDevicePemAllFileName -nodes
+    openssl pkcs12 -in $newDevicePfxFileName -out $newDevicePemAllFileName -nodes -password pass:$_privateKeyPassword
 
     # Now that we have a PEM, do some conversions on it to get formats we can process
     if ((Get-CACertsCertUseRSA) -eq $true)
@@ -281,7 +281,7 @@ function Write-CACertsCertificatesForEdgeDevice([string]$deviceName)
 
     Copy-Item $originalDevicePublicPem $edgeDeviceCertificate
     Copy-Item $originalDevicePrivatePem $edgeDevicePrivateKey
-    Get-Content $rootCACerFileName, $intermediate1CAPemFileName, $originalDevicePublicPem | Set-Content $edgeDeviceFullCertChain
+    Get-Content $originalDevicePublicPem, $intermediate1CAPemFileName, $rootCAPemFileName | Set-Content $edgeDeviceFullCertChain    
     Copy-Item $rootCAPemFileName $edgeIotHubOwnerCA
     Write-Host "Success"
 }
