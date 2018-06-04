@@ -16,6 +16,7 @@ static const char* IOTHUBSHAREDACESSKEYNAME = "SharedAccessKeyName";
 static const char* IOTHUBSHAREDACESSKEY = "SharedAccessKey";
 static const char* IOTHUBDEVICEID = "DeviceId";
 static const char* IOTHUBMODULEID = "ModuleId";
+static const char* IOTHUBGATEWAYHOSTNAME = "GatewayHostName";
 
 static void free_service_client_auth(IOTHUB_SERVICE_CLIENT_AUTH* authInfo)
 {
@@ -112,6 +113,7 @@ IOTHUB_SERVICE_CLIENT_AUTH_HANDLE IoTHubServiceClientAuth_CreateFromConnectionSt
                     const char* keyName;
                     const char* deviceId;
                     const char* moduleId;
+                    const char* gatewayHostName;
                     const char* sharedAccessKey;
                     const char* iothubName;
                     const char* iothubSuffix;
@@ -119,6 +121,7 @@ IOTHUB_SERVICE_CLIENT_AUTH_HANDLE IoTHubServiceClientAuth_CreateFromConnectionSt
                     keyName = Map_GetValueFromKey(connection_string_values_map, IOTHUBSHAREDACESSKEYNAME);
                     deviceId = Map_GetValueFromKey(connection_string_values_map, IOTHUBDEVICEID);
                     moduleId = Map_GetValueFromKey(connection_string_values_map, IOTHUBMODULEID);
+                    gatewayHostName = Map_GetValueFromKey(connection_string_values_map, IOTHUBGATEWAYHOSTNAME);
 
                     /*Codes_SRS_IOTHUBSERVICECLIENT_12_004: [** IoTHubServiceClientAuth_CreateFromConnectionString shall populate hostName, iotHubName, iotHubSuffix, sharedAccessKeyName, sharedAccessKeyValue from the given connection string by calling connectionstringparser_parse **] */
                     (void)memset(result, 0, sizeof(IOTHUB_SERVICE_CLIENT_AUTH));
@@ -216,6 +219,12 @@ IOTHUB_SERVICE_CLIENT_AUTH_HANDLE IoTHubServiceClientAuth_CreateFromConnectionSt
                     else if ((moduleId != NULL) && (mallocAndStrcpy_s(&result->moduleId, moduleId) != 0))
                     {
                         LogError("mallocAndStrcpy_s failed for moduleId");
+                        free_service_client_auth(result);
+                        result = NULL;
+                    }
+                    else if ((gatewayHostName != NULL) && (mallocAndStrcpy_s(&result->gatewayHostName, gatewayHostName) != 0))
+                    {
+                        LogError("mallocAndStrcpy_s failed for gatewayHostName");
                         free_service_client_auth(result);
                         result = NULL;
                     }

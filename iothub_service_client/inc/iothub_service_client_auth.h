@@ -61,6 +61,7 @@ typedef struct IOTHUB_SERVICE_CLIENT_AUTH_TAG
     char* keyName;
     char* deviceId;
     char* moduleId;
+    char* gatewayHostName;
 } IOTHUB_SERVICE_CLIENT_AUTH;
 
 /** @brief Handle to hide struct and use it in consequent APIs
