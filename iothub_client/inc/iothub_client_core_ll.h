@@ -30,6 +30,8 @@ typedef struct IOTHUB_CLIENT_CORE_LL_HANDLE_DATA_TAG* IOTHUB_CLIENT_CORE_LL_HAND
 #include "iothub_transport_ll.h"
 #include "iothub_client_core_common.h"
 
+#include "internal/iothub_module_client_ll_method.h"
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -66,6 +68,9 @@ extern "C"
 #ifdef USE_EDGE_MODULES
     MOCKABLE_FUNCTION(, IOTHUB_CLIENT_CORE_LL_HANDLE, IoTHubClientCore_LL_CreateFromEnvironment, const IOTHUB_CLIENT_CONFIG*, config, const char*, module_id);
 #endif
+
+    /* Utility */
+    MOCKABLE_FUNCTION(, IOTHUB_MODULE_CLIENT_METHOD_HANDLE, IoTHubClientCore_LL_GetMethodHandle, IOTHUB_CLIENT_CORE_LL_HANDLE, iotHubClientHandle);
 
 #ifdef __cplusplus
 }

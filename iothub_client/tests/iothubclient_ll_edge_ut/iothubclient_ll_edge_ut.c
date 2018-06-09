@@ -40,7 +40,7 @@ void* my_gballoc_realloc(void* ptr, size_t size)
 #include "iothub_module_client_ll.h"
 #undef ENABLE_MOCKS
 
-#include "iothub_client_ll_edge.h"
+#include "iothub_module_client_ll.h"
 
 
 static int bool_Compare(bool left, bool right)

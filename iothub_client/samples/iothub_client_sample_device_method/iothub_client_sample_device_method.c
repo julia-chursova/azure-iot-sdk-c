@@ -23,7 +23,7 @@
 #endif // SET_TRUSTED_CERT_IN_SAMPLES
 
 /* Paste in the your iothub connection string  */
-static const char* connectionString = "[device connection string]";
+static const char* connectionString = "HostName=MyTestIotHub.azure-devices.net;DeviceId=edgeDevice1;SharedAccessKey=aaabbbcccdddeeefffggghhhiiijjjkkklllmmmnnnoo;ModuleId=deviceManagement;GatewayHostName=127.0.0.1";
 
 static char msgText[1024];
 static char propText[1024];

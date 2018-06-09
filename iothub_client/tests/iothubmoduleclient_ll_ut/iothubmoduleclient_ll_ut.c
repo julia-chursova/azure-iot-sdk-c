@@ -19,7 +19,18 @@
 #include "umocktypes_bool.h"
 #include "umocktypes_stdint.h"
 
+static void* real_malloc(size_t size)
+{
+    return malloc(size);
+}
+
+static void real_free(void* ptr)
+{
+    free(ptr);
+}
+
 #define ENABLE_MOCKS
+#include "azure_c_shared_utility/gballoc.h"
 #include "iothub_client_core_ll.h"
 #include "iothub_client_private.h"
 #undef ENABLE_MOCKS
@@ -99,6 +110,10 @@ TEST_SUITE_INITIALIZE(suite_init)
     REGISTER_UMOCK_ALIAS_TYPE(IOTHUB_CLIENT_FILE_UPLOAD_GET_DATA_CALLBACK, void*);
     REGISTER_UMOCK_ALIAS_TYPE(IOTHUB_CLIENT_FILE_UPLOAD_GET_DATA_CALLBACK_EX, void*);
 
+    REGISTER_GLOBAL_MOCK_HOOK(gballoc_malloc, real_malloc);
+    REGISTER_GLOBAL_MOCK_FAIL_RETURN(gballoc_malloc, NULL);
+    REGISTER_GLOBAL_MOCK_HOOK(gballoc_free, real_free);
+
     REGISTER_GLOBAL_MOCK_RETURN(IoTHubClientCore_LL_CreateFromConnectionString, TEST_IOTHUB_CLIENT_CORE_LL_HANDLE);
     REGISTER_GLOBAL_MOCK_RETURN(IoTHubClientCore_LL_Create, TEST_IOTHUB_CLIENT_CORE_LL_HANDLE);
     REGISTER_GLOBAL_MOCK_RETURN(IoTHubClientCore_LL_SendEventAsync, IOTHUB_CLIENT_OK);
@@ -128,15 +143,18 @@ TEST_SUITE_CLEANUP(suite_cleanup)
 TEST_FUNCTION(IoTHubModuleClient_LL_CreateFromConnectionString_Test)
 {
     //arrange
+    STRICT_EXPECTED_CALL(gballoc_malloc(IGNORED_NUM_ARG));
     STRICT_EXPECTED_CALL(IoTHubClientCore_LL_CreateFromConnectionString(TEST_CONNECTION_STRING, TEST_TRANSPORT_PROVIDER));
+    STRICT_EXPECTED_CALL(IoTHubClientCore_LL_GetMethodHandle(IGNORED_PTR_ARG));
 
     //act
     IOTHUB_MODULE_CLIENT_LL_HANDLE result = IoTHubModuleClient_LL_CreateFromConnectionString(TEST_CONNECTION_STRING, TEST_TRANSPORT_PROVIDER);
 
     //assert
-    ASSERT_IS_TRUE(result == TEST_IOTHUB_MODULE_CLIENT_LL_HANDLE);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
+
+TEST_FUNCTION
 
 TEST_FUNCTION(IoTHubModuleClient_LL_Destroy_Test)
 {

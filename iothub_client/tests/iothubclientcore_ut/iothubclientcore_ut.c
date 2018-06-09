@@ -61,10 +61,6 @@ void* my_gballoc_realloc(void* ptr, size_t size)
 #include "iothub_client_core_ll.h"
 #include "internal/iothubtransport.h"
 
-#ifdef USE_EDGE_MODULES
-#include "iothub_client_ll_edge.h"
-#endif
-
 #undef ENABLE_MOCKS
 
 #undef IOTHUB_CLIENT_CORE_H

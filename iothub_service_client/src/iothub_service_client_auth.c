@@ -27,6 +27,7 @@ static void free_service_client_auth(IOTHUB_SERVICE_CLIENT_AUTH* authInfo)
     free(authInfo->keyName);
     free(authInfo->deviceId);
     free(authInfo->moduleId);
+    free(authInfo->gatewayHostName);
     free(authInfo);
 }
 

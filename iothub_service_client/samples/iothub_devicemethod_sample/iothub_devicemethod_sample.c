@@ -12,11 +12,11 @@
 #include "iothub_devicemethod.h"
 
 /* Paste in the your iothub connection string  */
-static const char* connectionString = "[device connection string]";
+static const char* connectionString = "HostName=MyTestIotHub.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=GsgoLH9eolofctxmtI/zwJv5By7NqzyNB5j4C+fKs6o=";
 
-static const char* deviceId = "";
-static const char* methodName = "[Method Name]";
-static const char* methodPayload = "[Method Payload]";
+static const char* deviceId = "edgeDevice1";
+static const char* methodName = "method-to-invoke";
+static const char* methodPayload = "method payload";
 static unsigned int timeout = 60;
 
 int main(void)
@@ -43,7 +43,10 @@ int main(void)
             int responseStatus;
             unsigned char* responsePayload;
             size_t responsePayloadSize;
-            IOTHUB_DEVICE_METHOD_RESULT invokeResult = IoTHubDeviceMethod_Invoke(serviceClientDeviceMethodHandle, deviceId, methodName, methodPayload, timeout, &responseStatus, &responsePayload, &responsePayloadSize);
+            //IOTHUB_DEVICE_METHOD_RESULT invokeResult = IoTHubDeviceMethod_Invoke(serviceClientDeviceMethodHandle, deviceId, methodName, methodPayload, timeout, &responseStatus, &responsePayload, &responsePayloadSize);
+            IOTHUB_DEVICE_METHOD_RESULT invokeResult = IoTHubDeviceMethod_InvokeModule(serviceClientDeviceMethodHandle, deviceId, "deviceManagement", methodName, methodPayload, timeout, &responseStatus, &responsePayload, &responsePayloadSize);
+
+            
             if (invokeResult == IOTHUB_DEVICE_METHOD_OK)
             {
                 printf("\r\nDevice Method called\r\n");

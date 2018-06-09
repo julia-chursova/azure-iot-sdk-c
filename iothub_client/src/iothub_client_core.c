@@ -14,15 +14,12 @@
 #include "internal/iothubtransport.h"
 #include "internal/iothub_client_private.h"
 #include "internal/iothubtransport.h"
+#include "iothub_module_client_ll.h"
 #include "azure_c_shared_utility/threadapi.h"
 #include "azure_c_shared_utility/lock.h"
 #include "azure_c_shared_utility/xlogging.h"
 #include "azure_c_shared_utility/singlylinkedlist.h"
 #include "azure_c_shared_utility/vector.h"
-
-#ifdef USE_EDGE_MODULES
-#include "iothub_client_ll_edge.h"
-#endif
 
 struct IOTHUB_QUEUE_CONTEXT_TAG;
 
@@ -893,7 +890,8 @@ static IOTHUB_CLIENT_CORE_INSTANCE* create_iothub_instance(CREATE_HUB_INSTANCE_T
                     }
                     else
                     {
-                        result->IoTHubClientLLHandle = IoTHubModuleClient_LL_CreateFromEnvironment(protocol);
+                        //FIX THIS!!!!!!!!!
+                        //result->IoTHubClientLLHandle = IoTHubModuleClient_LL_CreateFromEnvironment(protocol);
                     }
                 }
 #endif
