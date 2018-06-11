@@ -16,7 +16,7 @@ const char* payload = "this-is-a-payload";
 int main()
 {
     int response;
-    char* responsePayload;
+    unsigned char* responsePayload;
     size_t responsePayloadSize;
 
     IOTHUB_MODULE_CLIENT_LL_HANDLE handle = IoTHubModuleClient_LL_CreateFromEnvironment(MQTT_Protocol);
