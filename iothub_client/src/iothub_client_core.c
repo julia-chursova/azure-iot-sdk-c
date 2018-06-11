@@ -878,22 +878,21 @@ static IOTHUB_CLIENT_CORE_INSTANCE* create_iothub_instance(CREATE_HUB_INSTANCE_T
 #endif
                 }
 #ifdef USE_EDGE_MODULES
-                else if (create_hub_instance_type == CREATE_HUB_INSTANCE_FROM_EDGE_ENVIRONMENT)
-                {
-                    result->LockHandle = Lock_Init();
-                    if (result->LockHandle == NULL)
-                    {
-                        /* Codes_SRS_IOTHUBCLIENT_01_030: [If creating the lock fails, then IoTHubClient_Create shall return NULL.] */
-                        /* Codes_SRS_IOTHUBCLIENT_01_031: [If IoTHubClient_Create fails, all resources allocated by it shall be freed.] */
-                        LogError("Failure creating Lock object");
-                        result->IoTHubClientLLHandle = NULL;
-                    }
-                    else
-                    {
-                        //FIX THIS!!!!!!!!!
-                        //result->IoTHubClientLLHandle = IoTHubModuleClient_LL_CreateFromEnvironment(protocol);
-                    }
-                }
+                //else if (create_hub_instance_type == CREATE_HUB_INSTANCE_FROM_EDGE_ENVIRONMENT)
+                //{
+                //    result->LockHandle = Lock_Init();
+                //    if (result->LockHandle == NULL)
+                //    {
+                //        /* Codes_SRS_IOTHUBCLIENT_01_030: [If creating the lock fails, then IoTHubClient_Create shall return NULL.] */
+                //        /* Codes_SRS_IOTHUBCLIENT_01_031: [If IoTHubClient_Create fails, all resources allocated by it shall be freed.] */
+                //        LogError("Failure creating Lock object");
+                //        result->IoTHubClientLLHandle = NULL;
+                //    }
+                //    else
+                //    {
+                //        result->IoTHubClientLLHandle = IoTHubModuleClient_LL_CreateFromEnvironment(protocol);
+                //    }
+                //}
 #endif
                 else
                 {

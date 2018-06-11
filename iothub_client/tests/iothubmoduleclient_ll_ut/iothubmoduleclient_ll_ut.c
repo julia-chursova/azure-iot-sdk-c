@@ -154,7 +154,7 @@ TEST_FUNCTION(IoTHubModuleClient_LL_CreateFromConnectionString_Test)
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-TEST_FUNCTION
+//TEST_FUNCTION
 
 TEST_FUNCTION(IoTHubModuleClient_LL_Destroy_Test)
 {

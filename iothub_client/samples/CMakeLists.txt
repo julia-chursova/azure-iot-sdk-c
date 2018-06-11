@@ -25,6 +25,7 @@ if(${use_http})
         add_sample_directory(iothub_client_sample_upload_to_blob)
         add_sample_directory(iothub_client_sample_upload_to_blob_mb)
     endif()
+    add_sample_directory(iothub_client_sample_module_method_invoke)
 endif()
 
 if(${use_mqtt})
