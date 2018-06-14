@@ -389,7 +389,9 @@ static const char* TEST_AUTH_TYPE_CERTIFICATE_AUTHORITY = "certificateAuthority"
 static const char* TEST_PRIMARYKEY = "thePrimaryKey";
 static const char* TEST_SECONDARYKEY = "theSecondaryKey";
 static const char* TEST_GENERATIONID = "theGenerationId";
-static const char* TEST_ETAG = "theEtag";
+static const char* TEST_ETAG = "theEtag";
+static const char* TEST_MANAGED_BY = "testManagedBy";
+
 
 static char* TEST_HOSTNAME = "theHostName";
 static char* TEST_IOTHUBNAME = "theIotHubName";
@@ -460,6 +462,8 @@ static const char* TEST_DEVICE_JSON_KEY_DEVICE_ISMANAGED = "isManaged";
 static const char* TEST_DEVICE_JSON_KEY_DEVICE_CONFIGURATION = "configuration";
 static const char* TEST_DEVICE_JSON_KEY_DEVICE_DEVICEROPERTIES = "deviceProperties";
 static const char* TEST_DEVICE_JSON_KEY_DEVICE_SERVICEPROPERTIES = "serviceProperties";
+static const char* TEST_DEVICE_JSON_KEY_MANAGED_BY = "managedBy";
+
 
 static const char* TEST_DEVICE_JSON_KEY_TOTAL_DEVICECOUNT = "totalDeviceCount";
 static const char* TEST_DEVICE_JSON_KEY_ENABLED_DEVICECCOUNT = "enabledDeviceCount";
@@ -580,6 +584,8 @@ static void freeModuleList(SINGLYLINKEDLIST_HANDLE moduleList, IOTHUB_REGISTRYMA
                 free((char*)moduleInfo->serviceProperties);
             if (moduleInfo->moduleId != NULL)
                 free((char*)moduleInfo->moduleId);
+            if (moduleInfo->managedBy != NULL)
+                free((char*)moduleInfo->managedBy);
             free(moduleInfo);
         }
         singlylinkedlist_destroy(moduleList);
@@ -647,7 +653,7 @@ static void setupHttpMockCalls(bool updateIfMatch, const unsigned int httpStatus
         .IgnoreArgument(1);
 }
 
-static void setupJsonParseDeviceMockCalls(bool fromDeviceList, IOTHUB_REGISTRYMANAGER_AUTH_METHOD authMethod, bool isModule)
+static void setupJsonParseDeviceMockCalls(bool fromDeviceList, IOTHUB_REGISTRYMANAGER_AUTH_METHOD authMethod, bool isModule, const char* managedBy)
 {
     STRICT_EXPECTED_CALL(BUFFER_u_char(IGNORED_PTR_ARG))
         .IgnoreArgument(1)
@@ -678,7 +684,13 @@ static void setupJsonParseDeviceMockCalls(bool fromDeviceList, IOTHUB_REGISTRYMA
 
     if (isModule)
     {
-        // If moduleId is returned by parser, we'll make a copy of it, too.
+        // If moduleId is returned by parser, we'll make a copy of it
+        expectedMallocs++;
+    }
+
+    if (managedBy != NULL)
+    {
+        // If managedBy is returned by parser, we'll make a copy of it
         expectedMallocs++;
     }
 
@@ -713,6 +725,18 @@ static void setupJsonParseDeviceMockCalls(bool fromDeviceList, IOTHUB_REGISTRYMA
         STRICT_EXPECTED_CALL(json_object_get_string(TEST_JSON_OBJECT, TEST_DEVICE_JSON_KEY_MODULE_NAME))
             .SetReturn(NULL);
     }
+
+    if (managedBy != NULL)
+    {
+        STRICT_EXPECTED_CALL(json_object_get_string(TEST_JSON_OBJECT, TEST_DEVICE_JSON_KEY_MANAGED_BY))
+            .SetReturn(managedBy);
+    }
+    else
+    {
+        STRICT_EXPECTED_CALL(json_object_get_string(TEST_JSON_OBJECT, TEST_DEVICE_JSON_KEY_MANAGED_BY))
+            .SetReturn(NULL);
+    }
+    
     STRICT_EXPECTED_CALL(json_object_dotget_string(TEST_JSON_OBJECT, TEST_DEVICE_JSON_KEY_DEVICE_AUTH_TYPE))
         .SetReturn(authMethodString);
     STRICT_EXPECTED_CALL(json_object_get_string(TEST_JSON_OBJECT, TEST_DEVICE_JSON_KEY_DEVICE_GENERATION_ID))
@@ -775,8 +799,10 @@ static void setupJsonParseDeviceMockCalls(bool fromDeviceList, IOTHUB_REGISTRYMA
         STRICT_EXPECTED_CALL(singlylinkedlist_add(IGNORED_PTR_ARG, IGNORED_PTR_ARG))
             .IgnoreAllArguments();
 
-        if (false == isModule)
+        if (isModule == false)
         {
+            // Free module specific members allocated by lower layer but not needed now.
+            STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
             STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
         }
 
@@ -1637,7 +1663,7 @@ BEGIN_TEST_SUITE(iothub_registrymanager_ut)
         ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     }
 
-    static void set_expected_calls_for_create_device_or_module(IOTHUB_REGISTRYMANAGER_AUTH_METHOD authType, const char* moduleId)
+    static void set_expected_calls_for_create_device_or_module(IOTHUB_REGISTRYMANAGER_AUTH_METHOD authType, const char* moduleId, const char* managedBy)
     {
         // arrange
         const char *authTypeString = NULL;
@@ -1674,6 +1700,11 @@ BEGIN_TEST_SUITE(iothub_registrymanager_ut)
         if (moduleId != NULL)
         {
             STRICT_EXPECTED_CALL(json_object_set_string(TEST_JSON_OBJECT, TEST_DEVICE_JSON_KEY_MODULE_NAME, moduleId));    
+        }
+
+        if (managedBy != NULL)
+        {
+            STRICT_EXPECTED_CALL(json_object_set_string(TEST_JSON_OBJECT, TEST_DEVICE_JSON_KEY_MANAGED_BY, managedBy));    
         }
         STRICT_EXPECTED_CALL(json_object_dotset_string(TEST_JSON_OBJECT, TEST_DEVICE_JSON_KEY_DEVICE_STATUS, TEST_DEVICE_JSON_DEFAULT_VALUE_ENABLED));
         STRICT_EXPECTED_CALL(json_object_dotset_string(TEST_JSON_OBJECT, TEST_DEVICE_JSON_KEY_DEVICE_AUTH_TYPE, authTypeString));
@@ -1720,6 +1751,8 @@ BEGIN_TEST_SUITE(iothub_registrymanager_ut)
             .SetReturn(TEST_DEVICE_ID);
         STRICT_EXPECTED_CALL(json_object_get_string(TEST_JSON_OBJECT, TEST_DEVICE_JSON_KEY_MODULE_NAME))
             .SetReturn(moduleId);
+        STRICT_EXPECTED_CALL(json_object_get_string(TEST_JSON_OBJECT, TEST_DEVICE_JSON_KEY_MANAGED_BY))
+            .SetReturn(managedBy);
         STRICT_EXPECTED_CALL(json_object_dotget_string(TEST_JSON_OBJECT, TEST_DEVICE_JSON_KEY_DEVICE_AUTH_TYPE))
             .SetReturn(authTypeString);
         STRICT_EXPECTED_CALL(json_object_get_string(TEST_JSON_OBJECT, TEST_DEVICE_JSON_KEY_DEVICE_GENERATION_ID))
@@ -1818,9 +1851,14 @@ BEGIN_TEST_SUITE(iothub_registrymanager_ut)
             .IgnoreArgument(1);
         if (moduleId == NULL)
         {
+            // If this was *NOT* a module, then fields the lower layer allocated that are module specific
+            // are freed at this point since we can't pass them up device layer.
             STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG))
                 .IgnoreArgument(1);
-        }        
+            STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG))
+                .IgnoreArgument(1);
+        }
+
     }
 
     /* Tests_SRS_IOTHUBREGISTRYMANAGER_12_010: [ IoTHubRegistryManager_CreateDevice shall create a flat "key1:value2,key2:value2..." JSON representation from the given deviceCreateInfo parameter using the following parson APIs: json_value_init_object, json_value_get_object, json_object_set_string, json_object_dotset_string ]*/
@@ -1831,7 +1869,7 @@ BEGIN_TEST_SUITE(iothub_registrymanager_ut)
     static void TestCreateDevice(IOTHUB_REGISTRYMANAGER_AUTH_METHOD authType)
     {
         // arrange
-        set_expected_calls_for_create_device_or_module(authType, NULL);
+        set_expected_calls_for_create_device_or_module(authType, NULL, NULL);
 
         // act
         IOTHUB_DEVICE deviceInfo;
@@ -1866,7 +1904,7 @@ BEGIN_TEST_SUITE(iothub_registrymanager_ut)
     static void TestCreateDeviceEx(IOTHUB_REGISTRYMANAGER_AUTH_METHOD authType)
     {
         // arrange
-        set_expected_calls_for_create_device_or_module(authType, NULL);
+        set_expected_calls_for_create_device_or_module(authType, NULL, NULL);
 
         // act
         IOTHUB_DEVICE_EX deviceInfo;
@@ -1924,10 +1962,10 @@ BEGIN_TEST_SUITE(iothub_registrymanager_ut)
         TestCreateDevice(IOTHUB_REGISTRYMANAGER_AUTH_X509_CERTIFICATE_AUTHORITY);
     }
 
-    static void TestCreateModule(IOTHUB_REGISTRYMANAGER_AUTH_METHOD authType)
+    static void TestCreateModule(IOTHUB_REGISTRYMANAGER_AUTH_METHOD authType, const char* managedBy)
     {
         // arrange
-        set_expected_calls_for_create_device_or_module(authType, TEST_MODULE_ID);
+        set_expected_calls_for_create_device_or_module(authType, TEST_MODULE_ID, NULL);
 
         // act
         IOTHUB_MODULE moduleInfo;
@@ -1941,6 +1979,7 @@ BEGIN_TEST_SUITE(iothub_registrymanager_ut)
         moduleCreate.primaryKey = TEST_PRIMARYKEY;
         moduleCreate.secondaryKey = TEST_SECONDARYKEY;
         moduleCreate.authMethod = authType;
+        moduleCreate.managedBy = managedBy;
         IOTHUB_REGISTRYMANAGER_RESULT result = IoTHubRegistryManager_CreateModule(TEST_IOTHUB_REGISTRYMANAGER_HANDLE, &moduleCreate, &moduleInfo);
 
         // assert
@@ -1953,17 +1992,17 @@ BEGIN_TEST_SUITE(iothub_registrymanager_ut)
 
     TEST_FUNCTION(IoTHubRegistryManager_CreateModule_happy_path_status_code_200_sas)
     {
-        TestCreateModule(IOTHUB_REGISTRYMANAGER_AUTH_SPK);
+        TestCreateModule(IOTHUB_REGISTRYMANAGER_AUTH_SPK, NULL);
     }
 
     TEST_FUNCTION(IoTHubRegistryManager_CreateModule_happy_path_status_code_200_with_thumbprint)
     {
-        TestCreateModule(IOTHUB_REGISTRYMANAGER_AUTH_X509_THUMBPRINT);
+        TestCreateModule(IOTHUB_REGISTRYMANAGER_AUTH_X509_THUMBPRINT, NULL);
     }    
 
     TEST_FUNCTION(IoTHubRegistryManager_CreateModule_happy_path_status_code_200_with_certificate_authority)
     {
-        TestCreateModule(IOTHUB_REGISTRYMANAGER_AUTH_X509_CERTIFICATE_AUTHORITY);
+        TestCreateModule(IOTHUB_REGISTRYMANAGER_AUTH_X509_CERTIFICATE_AUTHORITY, NULL);
     }
 
     /* Tests_SRS_IOTHUBREGISTRYMANAGER_12_020: [ IoTHubRegistryManager_CreateDevice shall verify the received HTTP status code and if it is 409 then return IOTHUB_REGISTRYMANAGER_DEVICE_EXIST ]*/
@@ -2437,9 +2476,11 @@ BEGIN_TEST_SUITE(iothub_registrymanager_ut)
     {
         ///arrange
         setupHttpMockCalls(false, httpStatusCodeOk, HTTPAPI_REQUEST_GET);
-        setupJsonParseDeviceMockCalls(false, authType, false);
+        setupJsonParseDeviceMockCalls(false, authType, false, NULL);
 
         STRICT_EXPECTED_CALL(BUFFER_delete(IGNORED_PTR_ARG))
+            .IgnoreArgument(1);
+        STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG))
             .IgnoreArgument(1);
         STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG))
             .IgnoreArgument(1);
@@ -2472,9 +2513,11 @@ BEGIN_TEST_SUITE(iothub_registrymanager_ut)
     {
         ///arrange
         setupHttpMockCalls(false, httpStatusCodeOk, HTTPAPI_REQUEST_GET);
-        setupJsonParseDeviceMockCalls(false, authType, false);
+        setupJsonParseDeviceMockCalls(false, authType, false, NULL);
 
         STRICT_EXPECTED_CALL(BUFFER_delete(IGNORED_PTR_ARG))
+            .IgnoreArgument(1);
+        STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG))
             .IgnoreArgument(1);
         STRICT_EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG))
             .IgnoreArgument(1);
@@ -2597,7 +2640,7 @@ BEGIN_TEST_SUITE(iothub_registrymanager_ut)
     {
         ///arrange
         setupHttpMockCalls(false, httpStatusCodeOk, HTTPAPI_REQUEST_GET);
-        setupJsonParseDeviceMockCalls(false, authType, true);
+        setupJsonParseDeviceMockCalls(false, authType, true, NULL);
 
         STRICT_EXPECTED_CALL(BUFFER_delete(IGNORED_PTR_ARG))
             .IgnoreArgument(1);
@@ -2650,7 +2693,7 @@ BEGIN_TEST_SUITE(iothub_registrymanager_ut)
         ASSERT_ARE_EQUAL(int, 0, umockc_result);
 
         setupHttpMockCalls(false, httpStatusCodeOk, HTTPAPI_REQUEST_GET);
-        setupJsonParseDeviceMockCalls(false, IOTHUB_REGISTRYMANAGER_AUTH_SPK, false);
+        setupJsonParseDeviceMockCalls(false, IOTHUB_REGISTRYMANAGER_AUTH_SPK, false, NULL);
 
         STRICT_EXPECTED_CALL(BUFFER_delete(IGNORED_PTR_ARG))
             .IgnoreArgument(1);        
@@ -2693,8 +2736,9 @@ BEGIN_TEST_SUITE(iothub_registrymanager_ut)
                 (i != 38) && /*json_object_get_string*/
                 (i != 39) && /*json_object_get_string*/
                 (i != 40) && /*json_object_get_string*/
-                (i != 54) && /*json_value_free*/
-                (i != 55) /*BUFFER_delete*/
+                (i != 41) && /*json_object_get_string*/
+                (i != 55) && /*json_value_free*/
+                (i != 56) /*BUFFER_delete*/
                 )
             {
                 IOTHUB_REGISTRYMANAGER_RESULT result = IoTHubRegistryManager_GetDevice(TEST_IOTHUB_REGISTRYMANAGER_HANDLE, TEST_DEVICE_ID, deviceInfo);
@@ -2721,7 +2765,7 @@ BEGIN_TEST_SUITE(iothub_registrymanager_ut)
         ASSERT_ARE_EQUAL(int, 0, umockc_result);
 
         setupHttpMockCalls(false, httpStatusCodeOk, HTTPAPI_REQUEST_GET);
-        setupJsonParseDeviceMockCalls(false, IOTHUB_REGISTRYMANAGER_AUTH_SPK, false);
+        setupJsonParseDeviceMockCalls(false, IOTHUB_REGISTRYMANAGER_AUTH_SPK, false, NULL);
 
         STRICT_EXPECTED_CALL(BUFFER_delete(IGNORED_PTR_ARG))
             .IgnoreArgument(1);
@@ -2765,8 +2809,10 @@ BEGIN_TEST_SUITE(iothub_registrymanager_ut)
                 (i != 38) && /*json_object_get_string*/
                 (i != 39) && /*json_object_get_string*/
                 (i != 40) && /*json_object_get_string*/
-                (i != 54) && /*json_value_free*/
-                (i != 55) /*BUFFER_delete*/
+                (i != 41) && /*json_object_get_string*/
+                (i != 54) && /*json_object_clear*/
+                (i != 55) && /*json_value_free*/
+                (i != 56) /*BUFFER_delete*/
                 )
             {
                 IOTHUB_REGISTRYMANAGER_RESULT result = IoTHubRegistryManager_GetDevice_Ex(TEST_IOTHUB_REGISTRYMANAGER_HANDLE, TEST_DEVICE_ID, deviceInfo);
@@ -2983,7 +3029,7 @@ BEGIN_TEST_SUITE(iothub_registrymanager_ut)
         ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
     }
 
-    static void setupUpdateDeviceOrModule_happy_path(IOTHUB_REGISTRYMANAGER_AUTH_METHOD authType, const char* moduleId)
+    static void setupUpdateDeviceOrModule_happy_path(IOTHUB_REGISTRYMANAGER_AUTH_METHOD authType, const char* moduleId, const char* managedBy)
     {
         // arrange
         STRICT_EXPECTED_CALL(gballoc_malloc(IGNORED_NUM_ARG))
@@ -2999,6 +3045,10 @@ BEGIN_TEST_SUITE(iothub_registrymanager_ut)
         if (moduleId != NULL)
         {
             STRICT_EXPECTED_CALL(json_object_set_string(TEST_JSON_OBJECT, TEST_DEVICE_JSON_KEY_MODULE_NAME, moduleId));    
+        }
+        if (managedBy != NULL)
+        {
+            STRICT_EXPECTED_CALL(json_object_set_string(TEST_JSON_OBJECT, TEST_DEVICE_JSON_KEY_MANAGED_BY, managedBy));    
         }
 
         STRICT_EXPECTED_CALL(json_object_dotset_string(TEST_JSON_OBJECT, TEST_DEVICE_JSON_KEY_DEVICE_STATUS, TEST_DEVICE_JSON_DEFAULT_VALUE_DISABLED));
@@ -3060,7 +3110,7 @@ BEGIN_TEST_SUITE(iothub_registrymanager_ut)
     TEST_FUNCTION(IoTHubRegistryManager_UpdateDevice_happy_path_with_sas_token)
     {
         // arrange
-        setupUpdateDeviceOrModule_happy_path(IOTHUB_REGISTRYMANAGER_AUTH_SPK, NULL);
+        setupUpdateDeviceOrModule_happy_path(IOTHUB_REGISTRYMANAGER_AUTH_SPK, NULL, NULL);
         
         // act
         IOTHUB_REGISTRY_DEVICE_UPDATE deviceUpdate;
@@ -3079,7 +3129,7 @@ BEGIN_TEST_SUITE(iothub_registrymanager_ut)
     TEST_FUNCTION(IoTHubRegistryManager_UpdateDevice_Ex_happy_path_with_sas_token)
     {
         // arrange
-        setupUpdateDeviceOrModule_happy_path(IOTHUB_REGISTRYMANAGER_AUTH_SPK, NULL);
+        setupUpdateDeviceOrModule_happy_path(IOTHUB_REGISTRYMANAGER_AUTH_SPK, NULL, NULL);
 
         // act
         IOTHUB_REGISTRY_DEVICE_UPDATE_EX deviceUpdate;
@@ -3112,7 +3162,7 @@ BEGIN_TEST_SUITE(iothub_registrymanager_ut)
     TEST_FUNCTION(IoTHubRegistryManager_UpdateDevice_happy_path_with_thumbprint)
     {
         // arrange
-        setupUpdateDeviceOrModule_happy_path(IOTHUB_REGISTRYMANAGER_AUTH_X509_THUMBPRINT, NULL);
+        setupUpdateDeviceOrModule_happy_path(IOTHUB_REGISTRYMANAGER_AUTH_X509_THUMBPRINT, NULL, NULL);
 
         // act
         IOTHUB_REGISTRY_DEVICE_UPDATE deviceUpdate;
@@ -3131,7 +3181,7 @@ BEGIN_TEST_SUITE(iothub_registrymanager_ut)
     TEST_FUNCTION(IoTHubRegistryManager_UpdateDevice_Ex_happy_path_with_thumbprint)
     {
         // arrange
-        setupUpdateDeviceOrModule_happy_path(IOTHUB_REGISTRYMANAGER_AUTH_X509_THUMBPRINT, NULL);
+        setupUpdateDeviceOrModule_happy_path(IOTHUB_REGISTRYMANAGER_AUTH_X509_THUMBPRINT, NULL, NULL);
 
         // act
         IOTHUB_REGISTRY_DEVICE_UPDATE_EX deviceUpdate;
@@ -3152,7 +3202,7 @@ BEGIN_TEST_SUITE(iothub_registrymanager_ut)
     TEST_FUNCTION(IoTHubRegistryManager_UpdateModule_happy_path_with_sas_token)
     {
         // arrange
-        setupUpdateDeviceOrModule_happy_path(IOTHUB_REGISTRYMANAGER_AUTH_SPK, TEST_MODULE_ID);
+        setupUpdateDeviceOrModule_happy_path(IOTHUB_REGISTRYMANAGER_AUTH_SPK, TEST_MODULE_ID, NULL);
 
         // act
         IOTHUB_REGISTRY_MODULE_UPDATE moduleUpdate;
@@ -3163,6 +3213,7 @@ BEGIN_TEST_SUITE(iothub_registrymanager_ut)
         moduleUpdate.secondaryKey = TEST_SECONDARYKEY;
         moduleUpdate.status = IOTHUB_DEVICE_STATUS_DISABLED;
         moduleUpdate.authMethod = IOTHUB_REGISTRYMANAGER_AUTH_SPK;
+        moduleUpdate.managedBy = NULL;
         IOTHUB_REGISTRYMANAGER_RESULT result = IoTHubRegistryManager_UpdateModule(TEST_IOTHUB_REGISTRYMANAGER_HANDLE, &moduleUpdate);
 
         // assert
@@ -3173,7 +3224,7 @@ BEGIN_TEST_SUITE(iothub_registrymanager_ut)
     TEST_FUNCTION(IoTHubRegistryManager_UpdateModule_happy_path_with_thumbprint)
     {
         // arrange
-        setupUpdateDeviceOrModule_happy_path(IOTHUB_REGISTRYMANAGER_AUTH_X509_THUMBPRINT, TEST_MODULE_ID);
+        setupUpdateDeviceOrModule_happy_path(IOTHUB_REGISTRYMANAGER_AUTH_X509_THUMBPRINT, TEST_MODULE_ID, NULL);
 
         // act
         IOTHUB_REGISTRY_MODULE_UPDATE moduleUpdate;
@@ -3184,6 +3235,7 @@ BEGIN_TEST_SUITE(iothub_registrymanager_ut)
         moduleUpdate.secondaryKey = TEST_SECONDARYKEY;
         moduleUpdate.status = IOTHUB_DEVICE_STATUS_DISABLED;
         moduleUpdate.authMethod = IOTHUB_REGISTRYMANAGER_AUTH_X509_THUMBPRINT;
+        moduleUpdate.managedBy = NULL;
         IOTHUB_REGISTRYMANAGER_RESULT result = IoTHubRegistryManager_UpdateModule(TEST_IOTHUB_REGISTRYMANAGER_HANDLE, &moduleUpdate);
 
         // assert
@@ -3584,7 +3636,7 @@ BEGIN_TEST_SUITE(iothub_registrymanager_ut)
         umock_c_reset_all_calls();
 
         setupHttpMockCalls(false, httpStatusCodeOk, HTTPAPI_REQUEST_GET);
-        setupJsonParseDeviceMockCalls(true, IOTHUB_REGISTRYMANAGER_AUTH_SPK, true);
+        setupJsonParseDeviceMockCalls(true, IOTHUB_REGISTRYMANAGER_AUTH_SPK, true, NULL);
 
         STRICT_EXPECTED_CALL(BUFFER_delete(IGNORED_PTR_ARG))
             .IgnoreArgument(1);        
@@ -3688,7 +3740,7 @@ BEGIN_TEST_SUITE(iothub_registrymanager_ut)
         umock_c_reset_all_calls();
 
         setupHttpMockCalls(false, httpStatusCodeOk, HTTPAPI_REQUEST_GET);
-        setupJsonParseDeviceMockCalls(true, IOTHUB_REGISTRYMANAGER_AUTH_SPK, false);
+        setupJsonParseDeviceMockCalls(true, IOTHUB_REGISTRYMANAGER_AUTH_SPK, false, NULL);
 
         STRICT_EXPECTED_CALL(BUFFER_delete(IGNORED_PTR_ARG))
             .IgnoreArgument(1);        
@@ -3712,7 +3764,7 @@ BEGIN_TEST_SUITE(iothub_registrymanager_ut)
         umock_c_reset_all_calls();
 
         setupHttpMockCalls(false, httpStatusCodeOk, HTTPAPI_REQUEST_GET);
-        setupJsonParseDeviceMockCalls(true, IOTHUB_REGISTRYMANAGER_AUTH_X509_THUMBPRINT, false);
+        setupJsonParseDeviceMockCalls(true, IOTHUB_REGISTRYMANAGER_AUTH_X509_THUMBPRINT, false, NULL);
 
         STRICT_EXPECTED_CALL(BUFFER_delete(IGNORED_PTR_ARG))
             .IgnoreArgument(1);        
@@ -3740,7 +3792,7 @@ BEGIN_TEST_SUITE(iothub_registrymanager_ut)
         ASSERT_ARE_EQUAL(int, 0, umockc_result);
 
         setupHttpMockCalls(false, httpStatusCodeOk, HTTPAPI_REQUEST_GET);
-        setupJsonParseDeviceMockCalls(true, IOTHUB_REGISTRYMANAGER_AUTH_SPK, false);
+        setupJsonParseDeviceMockCalls(true, IOTHUB_REGISTRYMANAGER_AUTH_SPK, false, NULL);
 
         STRICT_EXPECTED_CALL(BUFFER_delete(IGNORED_PTR_ARG))
             .IgnoreArgument(1);        
@@ -3786,10 +3838,14 @@ BEGIN_TEST_SUITE(iothub_registrymanager_ut)
                 (i != 39) && /*json_object_get_string*/
                 (i != 40) && /*json_object_dotget_string*/
                 (i != 41) && /*json_object_dotget_string*/
-                (i != 42) && /*json_object_dotget_boolean*/
-                (i != 57) && /*free*/
-                (i != 60) && /*json_value_free*/
-                (i != 61) /*BUFFER_delete*/
+                (i != 42) && /*json_object_dotget_string*/                
+                (i != 43) && /*json_object_dotget_boolean*/
+                (i != 58) && /*free*/
+                (i != 59) && /*free*/
+                (i != 60) && /*json_object_clear*/
+                (i != 61) && /*json_array_clear*/
+                (i != 62) && /*json_value_free*/
+                (i != 63) /*BUFFER_delete*/
                 )
             {
                 IOTHUB_REGISTRYMANAGER_RESULT result = IoTHubRegistryManager_GetDeviceList(TEST_IOTHUB_REGISTRYMANAGER_HANDLE, 10, deviceList);
@@ -3815,7 +3871,7 @@ BEGIN_TEST_SUITE(iothub_registrymanager_ut)
         ASSERT_ARE_EQUAL(int, 0, umockc_result);
 
         setupHttpMockCalls(false, httpStatusCodeOk, HTTPAPI_REQUEST_GET);
-        setupJsonParseDeviceMockCalls(true, IOTHUB_REGISTRYMANAGER_AUTH_SPK, true);
+        setupJsonParseDeviceMockCalls(true, IOTHUB_REGISTRYMANAGER_AUTH_SPK, true, NULL);
 
         STRICT_EXPECTED_CALL(BUFFER_delete(IGNORED_PTR_ARG))
             .IgnoreArgument(1);
@@ -3861,9 +3917,10 @@ BEGIN_TEST_SUITE(iothub_registrymanager_ut)
                 (i != 39) && /*json_object_get_string*/
                 (i != 40) && /*json_object_dotget_string*/
                 (i != 41) && /*json_object_dotget_string*/
-                (i != 42) && /*json_object_dotget_boolean*/
-                (i != 60) && /*json_value_free*/
-                (i != 61) /*BUFFER_delete*/
+                (i != 42) && /*json_object_dotget_string*/
+                (i != 43) && /*json_object_dotget_boolean*/
+                (i != 61) && /*json_value_free*/
+                (i != 62) /*BUFFER_delete*/
                 )
             {
                 IOTHUB_REGISTRYMANAGER_RESULT result = IoTHubRegistryManager_GetModuleList(TEST_IOTHUB_REGISTRYMANAGER_HANDLE, TEST_DEVICE_ID, moduleList, IOTHUB_MODULE_VERSION_1);
