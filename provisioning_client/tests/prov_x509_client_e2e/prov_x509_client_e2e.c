@@ -130,7 +130,7 @@ BEGIN_TEST_SUITE(prov_x509_client_e2e)
     }
 #endif
 
-#if USE_AMQP
+/*#if USE_AMQP
     TEST_FUNCTION(dps_register_device_amqp_success)
     {
         PROV_CLIENT_E2E_INFO prov_info;
@@ -241,4 +241,5 @@ BEGIN_TEST_SUITE(prov_x509_client_e2e)
         Prov_Device_LL_Destroy(handle);
     }
 #endif
+*/
 END_TEST_SUITE(prov_x509_client_e2e)
