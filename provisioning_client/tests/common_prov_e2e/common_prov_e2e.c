@@ -172,15 +172,19 @@ void create_x509_enrollment_device(const char* prov_conn_string, bool use_tracin
 
 void remove_enrollment_device(const char* prov_conn_string)
 {
+    LogInfo("create prov service client from conn string");
     PROVISIONING_SERVICE_CLIENT_HANDLE prov_sc_handle = prov_sc_create_from_connection_string(prov_conn_string);
     ASSERT_IS_NOT_NULL_WITH_MSG(prov_sc_handle, "Failure creating provisioning service client");
 
+    LogInfo("create prov auth client");
     PROV_AUTH_HANDLE auth_handle = prov_auth_create();
     ASSERT_IS_NOT_NULL_WITH_MSG(auth_handle, "Failure creating auth client");
 
+    LogInfo("prov_auth_get_registration_id being called");
     char* registration_id = prov_auth_get_registration_id(auth_handle);
     ASSERT_IS_NOT_NULL_WITH_MSG(registration_id, "Failure retrieving registration Id");
 
+    LogInfo("prov_sc_delete_individual_enrollment_by_param being called");
     ASSERT_ARE_EQUAL_WITH_MSG(int, 0, prov_sc_delete_individual_enrollment_by_param(prov_sc_handle, registration_id, NULL), "Failure deleting enrollment");
 
     free(registration_id);
