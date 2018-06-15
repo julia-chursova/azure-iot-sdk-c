@@ -34,7 +34,7 @@
 
 #include "common_prov_e2e.h"
 
-#define MAX_CLOUD_TRAVEL_TIME       60.0
+#define MAX_CLOUD_TRAVEL_TIME       120.0
 #define DEVICE_GUID_SIZE            37
 
 void wait_for_dps_result(PROV_DEVICE_LL_HANDLE handle, PROV_CLIENT_E2E_INFO* prov_info)
