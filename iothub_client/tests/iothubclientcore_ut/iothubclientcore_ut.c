@@ -12,6 +12,10 @@
 
 #include <time.h>
 
+#if defined _MSC_VER
+#pragma warning(disable: 4054) /* MSC incorrectly fires this */
+#endif
+
 static size_t my_malloc_count;
 static void* my_malloc_items[100];
 
@@ -3825,7 +3829,6 @@ TEST_FUNCTION(IoTHubClientCore_SetInputMessageCallback_succeed)
     IoTHubClientCore_Destroy(iothub_handle);
 }
 
-// Tests_SRS_IOTHUBCLIENT_31_097: [ If `iotHubClientHandle` or `inputName` is NULL, `IoTHubClient_SetInputMessageCallback` shall return IOTHUB_CLIENT_INVALID_ARG. ]
 TEST_FUNCTION(IoTHubClientCore_SetInputMessageCallback_iothub_client_handle_NULL_fail)
 {
     // arrange
@@ -3838,18 +3841,19 @@ TEST_FUNCTION(IoTHubClientCore_SetInputMessageCallback_iothub_client_handle_NULL
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 }
 
-// Tests_SRS_IOTHUBCLIENT_31_097: [ If `iotHubClientHandle` or `inputName` is NULL, `IoTHubClient_SetInputMessageCallback` shall return IOTHUB_CLIENT_INVALID_ARG. ]
-TEST_FUNCTION(IoTHubClientCore_SetInputMessageCallback_iothub_inputName_NULL_fail)
+TEST_FUNCTION(IoTHubClientCore_SetInputMessageCallback_iothub_inputName_NULL_succeeds)
 {
     // arrange
     IOTHUB_CLIENT_CORE_HANDLE iothub_handle = IoTHubClientCore_Create(TEST_CLIENT_CONFIG);
     umock_c_reset_all_calls();
 
+    setup_IoTHubClientCore_SetInputMessageCallback(true);
+
     // act
     IOTHUB_CLIENT_RESULT result = IoTHubClientCore_SetInputMessageCallback(iothub_handle, NULL, test_message_confirmation_callback, NULL);
 
     // assert
-    ASSERT_ARE_EQUAL(IOTHUB_CLIENT_RESULT, IOTHUB_CLIENT_INVALID_ARG, result);
+    ASSERT_ARE_EQUAL(IOTHUB_CLIENT_RESULT, IOTHUB_CLIENT_OK, result);
     ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
     // cleanup

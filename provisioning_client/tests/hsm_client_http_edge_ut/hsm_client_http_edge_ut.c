@@ -29,6 +29,10 @@ static void my_gballoc_free(void* ptr)
 #include "umock_c_negative_tests.h"
 #include "azure_c_shared_utility/macro_utils.h"
 
+#if defined _MSC_VER
+#pragma warning(disable: 4054) /* MSC incorrectly fires this */
+#endif
+
 static int bool_Compare(bool left, bool right)
 {
     return left != right;
