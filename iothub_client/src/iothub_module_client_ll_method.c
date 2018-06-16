@@ -7,6 +7,7 @@
 #include "azure_c_shared_utility/httpapiex.h"
 #include "azure_c_shared_utility/httpapiexsas.h"
 #include "azure_c_shared_utility/uniqueid.h"
+#include "azure_c_shared_utility/shared_util_options.h"
 
 #include "parson.h"
 
@@ -30,7 +31,7 @@
 static const char* const URL_API_VERSION = "?api-version=2017-11-08-preview";
 static const char* const RELATIVE_PATH_FMT_METHOD = "/twins/%s/modules/%s/methods%s";
 static const char* const RELATIVE_PATH_FMT_METHOD_PAYLOAD = "{\"methodName\":\"%s\",\"timeout\":%d,\"payload\":%s}";
-static const char* const SCOPE_FMT = "%s%%2Fdevices%%2F%s%%2Fmodules%%2F%s"; //already URL Encoded
+static const char* const SCOPE_FMT = "%s/devices/%s/modules/%s";
 
 typedef struct IOTHUB_MODULE_CLIENT_METHOD_HANDLE_DATA_TAG
 {
@@ -251,6 +252,7 @@ static IOTHUB_CLIENT_RESULT sendHttpRequestMethod(IOTHUB_MODULE_CLIENT_METHOD_HA
     STRING_HANDLE relativePath;
     STRING_HANDLE scope;
     char* sastoken;
+    char* trustedCertificate;
     unsigned int statusCode = 0;
 
     if ((httpHeader = createHttpHeader()) == NULL)
@@ -296,9 +298,24 @@ static IOTHUB_CLIENT_RESULT sendHttpRequestMethod(IOTHUB_MODULE_CLIENT_METHOD_HA
         STRING_delete(relativePath);
         result = IOTHUB_CLIENT_ERROR;
     }
+    else if ((trustedCertificate = IoTHubClient_Auth_Get_TrustBundle(moduleMethodHandle->authorizationHandle)) == NULL)
+    {
+        LogError("Failed to get TrustBundle");
+        HTTPHeaders_Free(httpHeader);
+        STRING_delete(scope);
+        free(sastoken);
+        STRING_delete(relativePath);
+        HTTPAPIEX_Destroy(httpExApiHandle);
+        result = IOTHUB_CLIENT_ERROR;
+    }
     else
     {
-        if (HTTPAPIEX_ExecuteRequest(httpExApiHandle, HTTPAPI_REQUEST_POST, STRING_c_str(relativePath), httpHeader, deviceJsonBuffer, &statusCode, NULL, responseBuffer) != HTTPAPIEX_OK)
+        if (HTTPAPIEX_SetOption(httpExApiHandle, OPTION_TRUSTED_CERT, trustedCertificate) != HTTPAPIEX_OK)
+        {
+            LogError("Setting trusted certificate failed");
+            result = IOTHUB_CLIENT_ERROR;
+        }
+        else if (HTTPAPIEX_ExecuteRequest(httpExApiHandle, HTTPAPI_REQUEST_POST, STRING_c_str(relativePath), httpHeader, deviceJsonBuffer, &statusCode, NULL, responseBuffer) != HTTPAPIEX_OK)
         {
                 LogError("HTTPAPIEX_ExecuteRequest failed");
                 result = IOTHUB_CLIENT_ERROR;
@@ -316,11 +333,12 @@ static IOTHUB_CLIENT_RESULT sendHttpRequestMethod(IOTHUB_MODULE_CLIENT_METHOD_HA
             }
         }
 
-        HTTPAPIEX_Destroy(httpExApiHandle);
         HTTPHeaders_Free(httpHeader);
         STRING_delete(scope);
         free(sastoken);
         STRING_delete(relativePath);
+        HTTPAPIEX_Destroy(httpExApiHandle);
+        free(trustedCertificate);
     }
 
     return result;

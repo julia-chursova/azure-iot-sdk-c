@@ -23,7 +23,7 @@
 #endif // SET_TRUSTED_CERT_IN_SAMPLES
 
 /* Paste in the your iothub connection string  */
-static const char* connectionString = "HostName=MyTestIotHub.azure-devices.net;DeviceId=edgeDevice1;SharedAccessKey=aaabbbcccdddeeefffggghhhiiijjjkkklllmmmnnnoo;ModuleId=deviceManagement;GatewayHostName=127.0.0.1";
+//static const char* connectionString = "HostName=MyTestIotHub.azure-devices.net;DeviceId=edgeDevice1;SharedAccessKey=aaabbbcccdddeeefffggghhhiiijjjkkklllmmmnnnoo;ModuleId=deviceManagement;GatewayHostName=127.0.0.1";
 
 static char msgText[1024];
 static char propText[1024];
@@ -65,7 +65,7 @@ static int DeviceMethodCallback(const char* method_name, const unsigned char* pa
 
 void iothub_client_sample_device_method_run(void)
 {
-    IOTHUB_CLIENT_LL_HANDLE iotHubClientHandle;
+    IOTHUB_MODULE_CLIENT_LL_HANDLE iotHubClientHandle;
 
     g_continueRunning = true;
     
